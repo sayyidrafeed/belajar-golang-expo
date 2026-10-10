@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "To-Dos",
+    "slug": "to-dos",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": { "supportsTablet": true },
+    "android": { "package": "dev.todos.app" },
+    "web": { "bundler": "metro", "name": "To-Dos", "description": "A little less on your mind. Your personal task list." }
+  }
+}
