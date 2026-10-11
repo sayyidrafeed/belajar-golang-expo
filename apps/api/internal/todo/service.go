@@ -12,10 +12,10 @@ type ValidationError struct{ Message string }
 
 func (e *ValidationError) Error() string { return e.Message }
 
-type Service struct{ store *FileStore }
+type Service struct{ store *SQLiteStore }
 
-func NewService(store *FileStore) *Service     { return &Service{store: store} }
-func (s *Service) List() []Todo                { return s.store.List() }
+func NewService(store *SQLiteStore) *Service   { return &Service{store: store} }
+func (s *Service) List() ([]Todo, error)       { return s.store.List() }
 func (s *Service) Get(id string) (Todo, error) { return s.store.Get(id) }
 func (s *Service) Delete(id string) error      { return s.store.Delete(id) }
 

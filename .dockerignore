@@ -1,0 +1,8 @@
+**/node_modules
+.expo
+**/dist
+apps/api/data
+.git
+.github
+*.log
+.DS_Store

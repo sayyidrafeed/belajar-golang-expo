@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -14,11 +15,20 @@ import (
 )
 
 func main() {
-	path := env("TODOS_FILE", "data/todos.json")
-	store, err := todo.OpenFileStore(path)
+	path := env("TODOS_DB", "data/todos.db")
+	store, err := todo.OpenSQLiteStore(path)
 	if err != nil {
 		slog.Error("open todo storage", "error", err)
 		os.Exit(1)
+	}
+	defer store.Close()
+	// One-time import of the pre-SQLite JSON file; skipped once the database has tasks.
+	legacy := env("TODOS_FILE", filepath.Join(filepath.Dir(path), "todos.json"))
+	if n, err := store.ImportJSON(legacy); err != nil {
+		slog.Error("import legacy todos", "error", err)
+		os.Exit(1)
+	} else if n > 0 {
+		slog.Info("imported legacy todos", "count", n, "from", legacy)
 	}
 	mux := http.NewServeMux()
 	todo.NewHandler(todo.NewService(store)).Register(mux)

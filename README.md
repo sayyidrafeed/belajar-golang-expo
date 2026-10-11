@@ -51,9 +51,9 @@ Saving frontend code triggers Expo Fast Refresh. For Go changes, stop and restar
 
 Quick add assigns today's date in Today and high priority in High priority. Otherwise it creates a normal-priority task without a date. Adding from Upcoming or Completed switches to All tasks so the new task is visible. Detailed creation always switches to All tasks.
 
-Data lives in `apps/api/data/todos.json`, which is excluded from Git. The store serializes writes with a mutex, syncs a temporary file, and replaces the saved file atomically. A failed write does not change the in-memory state. A corrupt data file stops startup rather than being overwritten.
+Data lives in a SQLite database at `apps/api/data/todos.db` (WAL mode), which is excluded from Git. The store uses a single connection, so writes are serialized and transactional; a failed write changes nothing. A corrupt database stops startup rather than being overwritten. On first start, tasks from a legacy `todos.json` next to the database are imported once, only if the database is empty.
 
-This is a local, single-user app with one API process. There is no login, cloud sync, or offline write queue. The default API binds to the local network for phone testing. File storage should be replaced before running multiple API processes.
+This is a local, single-user app with one API process. There is no login, cloud sync, or offline write queue. The default API binds to the local network for phone testing. SQLite supports one API process; do not run multiple instances against the same file.
 
 ## Manual UAT
 
@@ -89,7 +89,7 @@ Changes from another browser/device appear after Refresh or when returning to th
 ```text
 apps/api/
   cmd/api/                 startup, HTTP server, CORS, shutdown
-  internal/todo/           model, handler, service, file store, focused Go tests
+  internal/todo/           model, handler, service, SQLite store, focused Go tests
 apps/mobile/
   src/App.tsx              responsive workspace and view state
   src/components/          shared controls and visual tokens
@@ -99,7 +99,7 @@ apps/mobile/
 scripts/dev.mjs            local process launcher and LAN configuration
 ```
 
-The app currently has one screen, so it does not need a routing dependency. The Go service owns task rules; the handler translates HTTP/JSON; the file store owns persistence.
+The app currently has one screen, so it does not need a routing dependency. The Go service owns task rules; the handler translates HTTP/JSON; the SQLite store owns persistence.
 
 ## API
 
@@ -120,7 +120,7 @@ curl -X POST http://localhost:8080/todos \
   -d '{"title":"Plan the weekend","priority":"normal","dueDate":""}'
 ```
 
-API configuration uses environment variables: `API_ADDR`, `TODOS_FILE`, and comma-separated `CORS_ORIGINS`. No dotenv loader is used in Go. Frontend `EXPO_PUBLIC_*` values are public app configuration, never secrets.
+API configuration uses environment variables: `API_ADDR`, `TODOS_DB` (default `data/todos.db`), `TODOS_FILE` (legacy JSON import path), and comma-separated `CORS_ORIGINS`. No dotenv loader is used in Go. Frontend `EXPO_PUBLIC_*` values are public app configuration, never secrets.
 
 ## Verification
 
@@ -130,7 +130,7 @@ npm run test:api
 cd apps/api && go vet ./...
 ```
 
-Go tests cover the HTTP CRUD journey, validation, false/empty PATCH values, concurrent updates, persistence after reopen, failed disk writes, corrupt-file handling, and CORS. There is no frontend unit-test framework, browser E2E framework, Playwright config, test browser binary, or automated UI-acceptance claim.
+Go tests cover the HTTP CRUD journey, validation, false/empty PATCH values, concurrent updates, persistence after reopen, rolled-back updates, corrupt-database handling, legacy JSON import, and CORS. There is no frontend unit-test framework, browser E2E framework, Playwright config, test browser binary, or automated UI-acceptance claim.
 
 An Expo export validates JS bundling for web, Android, and iOS; it is not an APK/AAB/IPA build or physical-device acceptance. Manual browser and phone UAT remain the user's checks.
 

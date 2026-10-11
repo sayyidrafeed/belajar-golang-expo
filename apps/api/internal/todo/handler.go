@@ -22,7 +22,12 @@ func (h *Handler) Register(mux *http.ServeMux) {
 }
 
 func (h *Handler) list(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{"todos": h.service.List()})
+	todos, err := h.service.List()
+	if err != nil {
+		fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"todos": todos})
 }
 
 func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
